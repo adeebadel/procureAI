@@ -1,825 +1,340 @@
-from flask import (
-    Flask,
-    render_template,
-    request,
-    send_file,
-    session
-)
+import os
+import uuid
+
+from flask import Flask, render_template, request, send_file, session
 
 from services.document_parser import extract_text_from_pdf
 from services.requirement_extractor import extract_requirements
 from services.compilance_checker import check_compliance
 from services.report_generator import generate_compliance_report
+from database import (
+    init_database,
+    create_analysis,
+    get_analysis,
+    update_bidder_data,
+    delete_analysis,
+)
 
-import os
-import uuid
-
-
-# ==================================================
-# APP CONFIGURATION
-# ==================================================
 
 app = Flask(__name__)
 
-app.secret_key = "procureai-local-development-key"
-
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "procureai-local-development-key"
+)
 
 UPLOAD_FOLDER = "uploads"
 
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+init_database()
 
-
-# ==================================================
-# IN-MEMORY ANALYSIS STORAGE
-# ==================================================
-
-analysis_store = {}
-
-
-# ==================================================
-# HELPER — SAVE FILE
-# ==================================================
 
 def save_uploaded_file(file):
+    extension = os.path.splitext(file.filename)[1].lower()
 
-    if not file:
-        return None
-
-    if not file.filename:
-        return None
-
-    extension = os.path.splitext(
-        file.filename
-    )[1].lower()
-
-    unique_name = (
-        f"{uuid.uuid4().hex}"
-        f"{extension}"
-    )
+    filename = f"{uuid.uuid4().hex}{extension}"
 
     file_path = os.path.join(
-        app.config["UPLOAD_FOLDER"],
-        unique_name
+        UPLOAD_FOLDER,
+        filename
     )
 
-    file.save(
-        file_path
-    )
+    file.save(file_path)
 
     return file_path
 
 
-# ==================================================
-# HELPER — VALIDATE PDF
-# ==================================================
-
 def is_pdf(file):
-
     if not file:
         return False
 
     if not file.filename:
         return False
 
-    return (
-        file.filename
-        .lower()
-        .endswith(".pdf")
-    )
+    return file.filename.lower().endswith(".pdf")
 
 
-# ==================================================
-# MAIN DASHBOARD
-# ==================================================
-
-@app.route(
-    "/",
-    methods=["GET", "POST"]
-)
+@app.route("/", methods=["GET", "POST"])
 def index():
-
-    extracted_pages = None
-
-    requirements = None
-
-    compliance_report = None
-
-    analysis_id = None
 
     error = None
 
-    tender_name = None
-
-    bidder_name = None
-
-
-    # ==================================================
-    # PROCESS TENDER
-    # ==================================================
-
     if request.method == "POST":
 
-        tender_file = request.files.get(
-            "tender"
-        )
+        tender_file = request.files.get("tender")
 
+        if not tender_file or not tender_file.filename:
+            error = "Please upload a tender PDF."
 
-        if not tender_file:
-
-            error = (
-                "Please select a tender PDF."
-            )
-
-
-        elif not is_pdf(
-            tender_file
-        ):
-
-            error = (
-                "Only PDF files are supported."
-            )
-
+        elif not is_pdf(tender_file):
+            error = "Only PDF files are supported."
 
         else:
 
             try:
+                file_path = save_uploaded_file(tender_file)
 
-                print(
-                    "\n===================================="
+                tender_pages = extract_text_from_pdf(
+                    file_path
                 )
 
-                print(
-                    "PROCUREAI TENDER ANALYSIS"
+                requirements = extract_requirements(
+                    tender_pages
                 )
 
-                print(
-                    "===================================="
+                analysis_id = uuid.uuid4().hex
+
+                create_analysis(
+                    analysis_id=analysis_id,
+                    tender_name=tender_file.filename,
+                    tender_pages=tender_pages,
+                    requirements=requirements
                 )
 
+                session["analysis_id"] = analysis_id
 
-                # ------------------------------------------
-                # SAVE TENDER
-                # ------------------------------------------
-
-                tender_path = save_uploaded_file(
-                    tender_file
+                return render_template(
+                    "index.html",
+                    analysis_id=analysis_id,
+                    tender_name=tender_file.filename,
+                    requirements=requirements,
+                    compliance_report=None,
+                    bidder_name=None,
+                    error=None
                 )
 
-                tender_name = (
-                    tender_file.filename
-                )
+            except Exception as exc:
+                error = f"Unable to process tender: {exc}"
 
+    analysis_id = session.get("analysis_id")
 
-                # ------------------------------------------
-                # STEP 1 — PDF EXTRACTION
-                # ------------------------------------------
+    if analysis_id:
 
-                print(
-                    "\n[1/3] Extracting tender text..."
-                )
+        analysis = get_analysis(analysis_id)
 
-                extracted_pages = (
-                    extract_text_from_pdf(
-                        tender_path
-                    )
-                )
+        if analysis:
 
-
-                if not extracted_pages:
-
-                    error = (
-                        "No readable text was found "
-                        "in the tender PDF."
-                    )
-
-                else:
-
-                    # --------------------------------------
-                    # STEP 2 — REQUIREMENT EXTRACTION
-                    # --------------------------------------
-
-                    print(
-                        "[2/3] Detecting requirements..."
-                    )
-
-                    requirements = (
-                        extract_requirements(
-                            extracted_pages
-                        )
-                    )
-
-
-                    print(
-                        f"Found {len(requirements)} "
-                        f"requirements."
-                    )
-
-
-                    # --------------------------------------
-                    # STEP 3 — CREATE ANALYSIS SESSION
-                    # --------------------------------------
-
-                    analysis_id = (
-                        uuid.uuid4().hex
-                    )
-
-
-                    analysis_store[
-                        analysis_id
-                    ] = {
-
-                        "tender_name":
-                            tender_name,
-
-                        "tender_pages":
-                            extracted_pages,
-
-                        "requirements":
-                            requirements,
-
-                        "bidder_name":
-                            None,
-
-                        "bidder_pages":
-                            [],
-
-                        "compliance_report":
-                            None
-
-                    }
-
-
-                    session[
-                        "analysis_id"
-                    ] = analysis_id
-
-
-                    print(
-                        "\nTender analysis complete."
-                    )
-
-
-            except Exception as e:
-
-                print(
-                    f"\nApplication error: {e}"
-                )
-
-                error = (
-                    "Something went wrong while "
-                    "processing the tender."
-                )
-
-
-    # ==================================================
-    # LOAD EXISTING ANALYSIS
-    # ==================================================
-
-    if not requirements:
-
-        analysis_id = session.get(
-            "analysis_id"
-        )
-
-        if analysis_id:
-
-            stored_analysis = (
-                analysis_store.get(
-                    analysis_id
-                )
+            return render_template(
+                "index.html",
+                analysis_id=analysis["id"],
+                tender_name=analysis["tender_name"],
+                requirements=analysis["requirements"],
+                compliance_report=analysis["compliance_report"],
+                bidder_name=analysis["bidder_name"],
+                error=error
             )
 
-            if stored_analysis:
-
-                extracted_pages = (
-                    stored_analysis.get(
-                        "tender_pages"
-                    )
-                )
-
-                requirements = (
-                    stored_analysis.get(
-                        "requirements"
-                    )
-                )
-
-                compliance_report = (
-                    stored_analysis.get(
-                        "compliance_report"
-                    )
-                )
-
-                tender_name = (
-                    stored_analysis.get(
-                        "tender_name"
-                    )
-                )
-
-                bidder_name = (
-                    stored_analysis.get(
-                        "bidder_name"
-                    )
-                )
-
-
-    # ==================================================
-    # RENDER DASHBOARD
-    # ==================================================
-
     return render_template(
-
         "index.html",
-
-        extracted_pages=
-            extracted_pages,
-
-        requirements=
-            requirements,
-
-        compliance_report=
-            compliance_report,
-
-        analysis_id=
-            analysis_id,
-
-        tender_name=
-            tender_name,
-
-        bidder_name=
-            bidder_name,
-
-        error=
-            error
-
+        analysis_id=None,
+        tender_name=None,
+        requirements=[],
+        compliance_report=None,
+        bidder_name=None,
+        error=error
     )
 
 
-# ==================================================
-# BIDDER DOCUMENT UPLOAD
-# ==================================================
-
-@app.route(
-    "/upload-bidder",
-    methods=["POST"]
-)
+@app.route("/upload-bidder", methods=["POST"])
 def upload_bidder():
 
-    analysis_id = session.get(
-        "analysis_id"
-    )
-
+    analysis_id = session.get("analysis_id")
 
     if not analysis_id:
 
         return render_template(
             "index.html",
-            error=(
-                "No tender analysis was found. "
-                "Please analyze a tender first."
-            )
+            analysis_id=None,
+            tender_name=None,
+            requirements=[],
+            compliance_report=None,
+            bidder_name=None,
+            error="Please upload a tender before uploading bidder documents."
         )
 
-
-    analysis = analysis_store.get(
-        analysis_id
-    )
-
+    analysis = get_analysis(analysis_id)
 
     if not analysis:
 
+        session.pop("analysis_id", None)
+
         return render_template(
             "index.html",
-            error=(
-                "The analysis session has expired. "
-                "Please upload the tender again."
-            )
+            analysis_id=None,
+            tender_name=None,
+            requirements=[],
+            compliance_report=None,
+            bidder_name=None,
+            error="Analysis not found. Please upload the tender again."
         )
-
 
     bidder_files = request.files.getlist(
         "bidder_documents"
     )
 
+    valid_files = []
 
-    valid_files = [
+    for file in bidder_files:
 
-        file
-
-        for file in bidder_files
-
-        if file
-        and file.filename
-        and is_pdf(file)
-
-    ]
-
+        if is_pdf(file):
+            valid_files.append(file)
 
     if not valid_files:
 
         return render_template(
-
             "index.html",
-
-            extracted_pages=
-                analysis.get(
-                    "tender_pages"
-                ),
-
-            requirements=
-                analysis.get(
-                    "requirements"
-                ),
-
-            compliance_report=
-                analysis.get(
-                    "compliance_report"
-                ),
-
-            analysis_id=
-                analysis_id,
-
-            tender_name=
-                analysis.get(
-                    "tender_name"
-                ),
-
-            bidder_name=
-                analysis.get(
-                    "bidder_name"
-                ),
-
-            error=(
-                "Please upload at least "
-                "one bidder PDF."
-            )
-
+            analysis_id=analysis["id"],
+            tender_name=analysis["tender_name"],
+            requirements=analysis["requirements"],
+            compliance_report=analysis["compliance_report"],
+            bidder_name=analysis["bidder_name"],
+            error="Please upload at least one bidder PDF."
         )
-
 
     try:
 
-        print(
-            "\n===================================="
-        )
-
-        print(
-            "PROCUREAI BIDDER ANALYSIS"
-        )
-
-        print(
-            "===================================="
-        )
-
-
         bidder_pages = []
+        bidder_names = []
 
-
-        # ------------------------------------------
-        # PROCESS EACH BIDDER PDF
-        # ------------------------------------------
-
-        for file in valid_files:
-
-            print(
-                f"\nProcessing: "
-                f"{file.filename}"
-            )
-
+        for bidder_file in valid_files:
 
             file_path = save_uploaded_file(
-                file
+                bidder_file
             )
-
 
             pages = extract_text_from_pdf(
                 file_path
             )
 
-
-            if not pages:
-                continue
-
-
             for page in pages:
 
-                bidder_pages.append({
+                bidder_pages.append(
+                    {
+                        "document": bidder_file.filename,
+                        "page": page["page"],
+                        "text": page["text"]
+                    }
+                )
 
-                    "page": page.get(
-                        "page"
-                    ),
-
-                    "text": page.get(
-                        "text",
-                        ""
-                    ),
-
-                    "document":
-                        file.filename
-
-                })
-
-
-        if not bidder_pages:
-
-            raise ValueError(
-                "No readable text was found "
-                "in the bidder documents."
+            bidder_names.append(
+                bidder_file.filename
             )
 
-
-        # ------------------------------------------
-        # COMPLIANCE CHECK
-        # ------------------------------------------
-
-        print(
-            "\nChecking bidder compliance..."
+        compliance_report = check_compliance(
+            analysis["requirements"],
+            bidder_pages
         )
 
-
-        requirements = analysis.get(
-            "requirements",
-            []
+        bidder_name = ", ".join(
+            bidder_names
         )
 
-
-        compliance_report = (
-            check_compliance(
-
-                requirements,
-
-                bidder_pages
-
-            )
+        update_bidder_data(
+            analysis_id=analysis_id,
+            bidder_name=bidder_name,
+            bidder_pages=bidder_pages,
+            compliance_report=compliance_report
         )
-
-
-        # ------------------------------------------
-        # STORE RESULT
-        # ------------------------------------------
-
-        analysis[
-            "bidder_pages"
-        ] = bidder_pages
-
-
-        analysis[
-            "bidder_name"
-        ] = "Uploaded Bidder"
-
-
-        analysis[
-            "compliance_report"
-        ] = compliance_report
-
-
-        print(
-            "\nCompliance analysis complete."
-        )
-
-
-        print(
-            compliance_report.get(
-                "summary",
-                {}
-            )
-        )
-
-
-    except Exception as e:
-
-        print(
-            f"\nBidder analysis error: {e}"
-        )
-
 
         return render_template(
-
             "index.html",
+            analysis_id=analysis["id"],
+            tender_name=analysis["tender_name"],
+            requirements=analysis["requirements"],
+            compliance_report=compliance_report,
+            bidder_name=bidder_name,
+            error=None
+        )
 
-            extracted_pages=
-                analysis.get(
-                    "tender_pages"
-                ),
+    except Exception as exc:
 
-            requirements=
-                analysis.get(
-                    "requirements"
-                ),
-
-            compliance_report=
-                analysis.get(
-                    "compliance_report"
-                ),
-
-            analysis_id=
-                analysis_id,
-
-            tender_name=
-                analysis.get(
-                    "tender_name"
-                ),
-
-            bidder_name=
-                analysis.get(
-                    "bidder_name"
-                ),
-
-            error=(
-                "Something went wrong while "
-                "processing bidder documents."
-            )
-
+        return render_template(
+            "index.html",
+            analysis_id=analysis["id"],
+            tender_name=analysis["tender_name"],
+            requirements=analysis["requirements"],
+            compliance_report=None,
+            bidder_name=None,
+            error=f"Unable to process bidder documents: {exc}"
         )
 
 
-    return render_template(
-
-        "index.html",
-
-        extracted_pages=
-            analysis.get(
-                "tender_pages"
-            ),
-
-        requirements=
-            analysis.get(
-                "requirements"
-            ),
-
-        compliance_report=
-            compliance_report,
-
-        analysis_id=
-            analysis_id,
-
-        tender_name=
-            analysis.get(
-                "tender_name"
-            ),
-
-        bidder_name=
-            analysis.get(
-                "bidder_name"
-            ),
-
-        error=None
-
-    )
-
-
-# ==================================================
-# DOWNLOAD REPORT
-# ==================================================
-
-@app.route(
-    "/download-report"
-)
+@app.route("/download-report")
 def download_report():
 
-    analysis_id = session.get(
-        "analysis_id"
-    )
-
+    analysis_id = session.get("analysis_id")
 
     if not analysis_id:
+        return "No analysis available.", 404
 
-        return (
-            "No analysis available.",
-            404
-        )
-
-
-    analysis = analysis_store.get(
+    analysis = get_analysis(
         analysis_id
     )
 
-
     if not analysis:
+        return "Analysis not found.", 404
 
-        return (
-            "Analysis session expired.",
-            404
-        )
-
-
-    compliance_report = (
-        analysis.get(
-            "compliance_report"
-        )
-    )
-
-
-    if not compliance_report:
-
-        return (
-            "No compliance report is available yet.",
-            404
-        )
-
-
-    tender_name = (
-        analysis.get(
-            "tender_name"
-        )
-        or "Tender"
-    )
-
-
-    bidder_name = (
-        analysis.get(
-            "bidder_name"
-        )
-        or "Bidder"
-    )
-
+    if not analysis["compliance_report"]:
+        return "No compliance report available.", 400
 
     try:
 
-        pdf_buffer = (
-            generate_compliance_report(
-
-                compliance_report,
-
-                tender_name=
-                    tender_name,
-
-                bidder_name=
-                    bidder_name
-
-            )
+        report_path = generate_compliance_report(
+            tender_name=analysis["tender_name"],
+            bidder_name=analysis["bidder_name"],
+            compliance_report=analysis["compliance_report"]
         )
-
 
         return send_file(
-
-            pdf_buffer,
-
-            mimetype="application/pdf",
-
+            report_path,
             as_attachment=True,
-
-            download_name=(
-                "procureai_compliance_report.pdf"
-            )
-
+            download_name="ProcureAI_Compliance_Report.pdf"
         )
 
-
-    except Exception as e:
-
-        print(
-            f"Report generation error: {e}"
-        )
+    except Exception as exc:
 
         return (
-            "Could not generate the report.",
+            f"Unable to generate report: {exc}",
             500
         )
 
 
-# ==================================================
-# RESET ANALYSIS
-# ==================================================
-
-@app.route(
-    "/reset"
-)
+@app.route("/reset")
 def reset():
 
-    analysis_id = session.get(
-        "analysis_id"
-    )
-
+    analysis_id = session.get("analysis_id")
 
     if analysis_id:
+        delete_analysis(analysis_id)
 
-        analysis_store.pop(
-            analysis_id,
-            None
-        )
-
-
-    session.clear()
-
-
-    return (
-        render_template(
-            "index.html"
-        )
+    session.pop(
+        "analysis_id",
+        None
     )
 
+    return render_template(
+        "index.html",
+        analysis_id=None,
+        tender_name=None,
+        requirements=[],
+        compliance_report=None,
+        bidder_name=None,
+        error=None
+    )
 
-# ==================================================
-# RUN APPLICATION
-# ==================================================
 
 if __name__ == "__main__":
 
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
+    )
+
     app.run(
+        host="0.0.0.0",
+        port=port,
         debug=True
     )

@@ -9,6 +9,12 @@ env/
 
 .env
 
+# SQLite database
+procureai.db
+procureai.db-shm
+procureai.db-wal
+
+# Uploaded documents
 uploads/*
 !uploads/.gitkeep
 
