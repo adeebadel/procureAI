@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        ProcureAI — Procurement Intelligence
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- ==================================================
+         SIDEBAR
+         ================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-mark">
+                P
+            </div>
+
+            <div>
+
+                <div class="brand-name">
+                    ProcureAI
+                </div>
+
+                <div class="brand-subtitle">
+                    Procurement Intelligence
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="#overview"
+                class="nav-item active"
+            >
+
+                <span class="nav-icon">
+                    ⌂
+                </span>
+
+                Overview
+
+            </a>
+
+
+            <a
+                href="#requirements"
+                class="nav-item"
+            >
+
+                <span class="nav-icon">
+                    ☷
+                </span>
+
+                Requirements
+
+            </a>
+
+
+            <a
+                href="#compliance"
+                class="nav-item"
+            >
+
+                <span class="nav-icon">
+                    ✓
+                </span>
+
+                Compliance
+
+            </a>
+
+
+            <a
+                href="#reports"
+                class="nav-item"
+            >
+
+                <span class="nav-icon">
+                    ▤
+                </span>
+
+                Reports
+
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <div class="system-status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    Local Analysis Engine
+                </span>
+
+            </div>
+
+
+            <div class="version">
+                ProcureAI MVP · v1.0
+            </div>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- ==================================================
+         MAIN CONTENT
+         ================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- ==================================================
+             TOPBAR
+             ================================================== -->
+
+        <header class="topbar">
+
+            <div>
+
+                <div class="page-eyebrow">
+                    PROCUREMENT OPERATIONS
+                </div>
+
+                <h1>
+                    Tender Intelligence
+                </h1>
+
+                <p class="page-description">
+
+                    Extract requirements, evaluate bidder
+                    evidence, and identify compliance gaps.
+
+                </p>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+                <div class="secure-badge">
+
+                    <span class="secure-dot"></span>
+
+                    Local Processing
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- ==================================================
+             ERROR MESSAGE
+             ================================================== -->
+
+        {% if error %}
+
+        <div class="alert alert-error">
+
+            <div class="alert-icon">
+                !
+            </div>
+
+            <div>
+
+                <strong>
+                    Processing Error
+                </strong>
+
+                <p>
+                    {{ error }}
+                </p>
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+
+        <!-- ==================================================
+             OVERVIEW
+             ================================================== -->
+
+        <section
+            id="overview"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        WORKSPACE
+                    </span>
+
+                    <h2>
+                        Tender Analysis
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="upload-grid">
+
+
+                <!-- ==================================================
+                     TENDER UPLOAD
+                     ================================================== -->
+
+                <div class="upload-card">
+
+                    <div class="upload-card-header">
+
+                        <div class="card-icon">
+                            T
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Tender Document
+                            </h3>
+
+                            <p>
+                                Upload the official tender PDF
+                                containing bidder requirements.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        action="/"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        id="tender-form"
+                    >
+
+                        <label
+                            for="tender"
+                            class="drop-zone"
+                            id="tender-drop-zone"
+                        >
+
+                            <div class="upload-icon">
+                                ↑
+                            </div>
+
+                            <div class="drop-title">
+                                Drop tender PDF here
+                            </div>
+
+                            <div class="drop-subtitle">
+                                or click to browse
+                            </div>
+
+                            <div
+                                class="selected-file"
+                                id="selected-file"
+                            ></div>
+
+
+                            <input
+                                type="file"
+                                id="tender"
+                                name="tender"
+                                accept=".pdf"
+                                hidden
+                                required
+                            >
+
+                        </label>
+
+
+                        <button
+                            type="submit"
+                            class="primary-button"
+                            id="analyze-button"
+                        >
+
+                            <span>
+                                Analyze Tender
+                            </span>
+
+                            <span class="button-arrow">
+                                →
+                            </span>
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+
+
+                <!-- ==================================================
+                     BIDDER UPLOAD
+                     ================================================== -->
+
+                <div class="upload-card secondary-card">
+
+                    <div class="upload-card-header">
+
+                        <div class="card-icon bidder-icon">
+                            B
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Bidder Documents
+                            </h3>
+
+                            <p>
+                                Upload technical and supporting
+                                documents for compliance verification.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    {% if requirements %}
+
+                    <form
+                        action="/upload-bidder"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        id="bidder-form"
+                    >
+
+                        <label
+                            for="bidder_documents"
+                            class="drop-zone bidder-drop-zone"
+                            id="bidder-drop-zone"
+                        >
+
+                            <div class="upload-icon">
+                                ↑
+                            </div>
+
+                            <div class="drop-title">
+                                Drop bidder PDFs here
+                            </div>
+
+                            <div class="drop-subtitle">
+                                Multiple PDF documents supported
+                            </div>
+
+                            <div
+                                class="selected-file"
+                                id="bidder-selected-files"
+                            ></div>
+
+
+                            <input
+                                type="file"
+                                id="bidder_documents"
+                                name="bidder_documents"
+                                accept=".pdf"
+                                multiple
+                                hidden
+                            >
+
+                        </label>
+
+
+                        <button
+                            type="submit"
+                            class="primary-button bidder-button"
+                            id="bidder-button"
+                        >
+
+                            <span>
+                                Verify Bidder
+                            </span>
+
+                            <span class="button-arrow">
+                                →
+                            </span>
+
+                        </button>
+
+                    </form>
+
+
+                    {% else %}
+
+                    <div class="future-upload">
+
+                        <div class="future-icon">
+                            +
+                        </div>
+
+                        <strong>
+                            Analyze a tender first
+                        </strong>
+
+                        <p>
+                            Upload and analyze the tender
+                            before submitting bidder documents.
+                        </p>
+
+                        <span class="coming-soon">
+                            WAITING FOR TENDER
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             TENDER REQUIREMENTS
+             ================================================== -->
+
+        {% if requirements %}
+
+        <section
+            id="requirements"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        REQUIREMENT EXTRACTION
+                    </span>
+
+                    <h2>
+                        Tender Requirements
+                    </h2>
+
+                </div>
+
+
+                <div class="result-count">
+
+                    <span class="count-number">
+                        {{ requirements|length }}
+                    </span>
+
+                    <span>
+                        requirements identified
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="requirements-panel">
+
+                <div class="table-header">
+
+                    <div>
+                        Requirement
+                    </div>
+
+                    <div>
+                        Category
+                    </div>
+
+                    <div>
+                        Mandatory
+                    </div>
+
+                    <div>
+                        Source
+                    </div>
+
+                    <div>
+                        Confidence
+                    </div>
+
+                </div>
+
+
+
+                {% for requirement in requirements %}
+
+                <div class="requirement-row">
+
+
+                    <div class="requirement-main">
+
+                        <div class="requirement-title">
+
+                            {{ requirement.requirement }}
+
+                        </div>
+
+
+                        {% if requirement.evidence %}
+
+                        <div class="evidence-text">
+
+                            "{{ requirement.evidence }}"
+
+                        </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        <span class="category-badge">
+
+                            {{ requirement.category }}
+
+                        </span>
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if requirement.mandatory %}
+
+                        <span class="mandatory-badge mandatory">
+
+                            Mandatory
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="mandatory-badge optional">
+
+                            Optional
+
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if requirement.page %}
+
+                        <span class="source-page">
+
+                            Page {{ requirement.page }}
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="source-page">
+                            —
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if requirement.confidence == "High" %}
+
+                        <span class="confidence high">
+                            High
+                        </span>
+
+                        {% elif requirement.confidence == "Medium" %}
+
+                        <span class="confidence medium">
+                            Medium
+                        </span>
+
+                        {% else %}
+
+                        <span class="confidence low">
+                            Low
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+
+        <!-- ==================================================
+             COMPLIANCE
+             ================================================== -->
+
+        <section
+            id="compliance"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        COMPLIANCE ENGINE
+                    </span>
+
+                    <h2>
+                        Bid Compliance
+                    </h2>
+
+                </div>
+
+
+                {% if compliance_report %}
+
+                <div class="result-count">
+
+                    <span class="count-number">
+
+                        {{ compliance_report.summary.total }}
+
+                    </span>
+
+                    <span>
+                        requirements checked
+                    </span>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            {% if compliance_report %}
+
+
+            <!-- ==================================================
+                 COMPLIANCE SUMMARY
+                 ================================================== -->
+
+            <div class="compliance-summary-grid">
+
+
+                <div class="compliance-stat">
+
+                    <div class="stat-label">
+                        Total
+                    </div>
+
+                    <div class="stat-value">
+                        {{ compliance_report.summary.total }}
+                    </div>
+
+                    <div class="stat-description">
+                        Requirements checked
+                    </div>
+
+                </div>
+
+
+                <div class="compliance-stat success-stat">
+
+                    <div class="stat-label">
+                        Satisfied
+                    </div>
+
+                    <div class="stat-value">
+                        {{ compliance_report.summary.satisfied }}
+                    </div>
+
+                    <div class="stat-description">
+                        Evidence matched
+                    </div>
+
+                </div>
+
+
+                <div class="compliance-stat warning-stat">
+
+                    <div class="stat-label">
+                        Review
+                    </div>
+
+                    <div class="stat-value">
+                        {{ compliance_report.summary.review }}
+                    </div>
+
+                    <div class="stat-description">
+                        Manual verification
+                    </div>
+
+                </div>
+
+
+                <div class="compliance-stat danger-stat">
+
+                    <div class="stat-label">
+                        Missing
+                    </div>
+
+                    <div class="stat-value">
+                        {{ compliance_report.summary.missing }}
+                    </div>
+
+                    <div class="stat-description">
+                        No sufficient evidence
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 COMPLIANCE TABLE
+                 ================================================== -->
+
+            <div class="requirements-panel compliance-panel">
+
+                <div class="compliance-table-header">
+
+                    <div>
+                        Requirement
+                    </div>
+
+                    <div>
+                        Category
+                    </div>
+
+                    <div>
+                        Status
+                    </div>
+
+                    <div>
+                        Tender
+                    </div>
+
+                    <div>
+                        Evidence
+                    </div>
+
+                    <div>
+                        Bidder
+                    </div>
+
+                    <div>
+                        Confidence
+                    </div>
+
+                </div>
+
+
+
+                {% for result in compliance_report.results %}
+
+                <div class="compliance-row">
+
+
+                    <div class="compliance-requirement">
+
+                        <strong>
+                            {{ result.requirement }}
+                        </strong>
+
+                        {% if result.reason %}
+
+                        <span>
+                            {{ result.reason }}
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        <span class="category-badge">
+
+                            {{ result.category }}
+
+                        </span>
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if result.status == "Satisfied" %}
+
+                        <span class="status-badge satisfied">
+                            ✓ Satisfied
+                        </span>
+
+                        {% elif result.status == "Review" %}
+
+                        <span class="status-badge review">
+                            ! Review
+                        </span>
+
+                        {% else %}
+
+                        <span class="status-badge missing">
+                            × Missing
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if result.tender_page %}
+
+                        <span class="source-page">
+                            Page {{ result.tender_page }}
+                        </span>
+
+                        {% else %}
+
+                        <span class="source-page">
+                            —
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div class="evidence-cell">
+
+                        {% if result.evidence %}
+
+                        <div class="evidence-quote">
+
+                            "{{ result.evidence }}"
+
+                        </div>
+
+                        {% else %}
+
+                        <span class="no-evidence">
+                            No evidence found
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if result.bidder_page %}
+
+                        <span class="source-page">
+                            Page {{ result.bidder_page }}
+                        </span>
+
+                        {% else %}
+
+                        <span class="source-page">
+                            —
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <div>
+
+                        {% if result.confidence == "High" %}
+
+                        <span class="confidence high">
+                            High
+                        </span>
+
+                        {% elif result.confidence == "Medium" %}
+
+                        <span class="confidence medium">
+                            Medium
+                        </span>
+
+                        {% else %}
+
+                        <span class="confidence low">
+                            Low
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 HUMAN REVIEW NOTICE
+                 ================================================== -->
+
+            <div class="review-notice">
+
+                <div class="review-notice-icon">
+                    i
+                </div>
+
+                <div>
+
+                    <strong>
+                        Human review required
+                    </strong>
+
+                    <p>
+
+                        ProcureAI provides evidence-based
+                        analysis to assist procurement teams.
+                        Final bid evaluation and procurement
+                        decisions must be made by the authorized
+                        human review team.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            {% else %}
+
+
+            <!-- ==================================================
+                 EMPTY COMPLIANCE STATE
+                 ================================================== -->
+
+            <div class="empty-state">
+
+                <div class="empty-state-icon">
+                    ✓
+                </div>
+
+                <h3>
+                    Compliance analysis ready
+                </h3>
+
+                <p>
+
+                    Upload bidder documents above to compare
+                    submitted evidence against the extracted
+                    tender requirements.
+
+                </p>
+
+
+                <div class="pipeline">
+
+
+                    <div class="pipeline-step completed">
+
+                        <span>
+                            01
+                        </span>
+
+                        Tender extraction
+
+                    </div>
+
+
+                    <div class="pipeline-line"></div>
+
+
+                    <div class="pipeline-step">
+
+                        <span>
+                            02
+                        </span>
+
+                        Bidder evidence
+
+                    </div>
+
+
+                    <div class="pipeline-line"></div>
+
+
+                    <div class="pipeline-step">
+
+                        <span>
+                            03
+                        </span>
+
+                        Compliance review
+
+                    </div>
+
+
+                    <div class="pipeline-line"></div>
+
+
+                    <div class="pipeline-step">
+
+                        <span>
+                            04
+                        </span>
+
+                        Report
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {% endif %}
+
+        </section>
+
+
+
+        <!-- ==================================================
+             REPORTS
+             ================================================== -->
+
+        <section
+            id="reports"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        OUTPUT
+                    </span>
+
+                    <h2>
+                        Reports
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            {% if compliance_report %}
+
+            <div class="report-card">
+
+                <div class="report-card-icon">
+                    ▤
+                </div>
+
+
+                <div class="report-card-content">
+
+                    <span class="section-label">
+                        GENERATED REPORT
+                    </span>
+
+                    <h3>
+                        Compliance Analysis Report
+                    </h3>
+
+                    <p>
+
+                        Download a PDF containing the
+                        compliance summary, requirement-level
+                        results, bidder evidence, source pages,
+                        and review notes.
+
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="/download-report"
+                    class="primary-button report-button"
+                >
+
+                    <span>
+                        Download PDF
+                    </span>
+
+                    <span class="button-arrow">
+                        ↓
+                    </span>
+
+                </a>
+
+            </div>
+
+
+            {% else %}
+
+            <div class="report-placeholder">
+
+                <div class="report-icon">
+                    ▤
+                </div>
+
+                <div>
+
+                    <h3>
+                        Compliance reports
+                    </h3>
+
+                    <p>
+
+                        Complete bidder verification to
+                        generate a downloadable procurement
+                        compliance report.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+
+
+        <!-- ==================================================
+             FOOTER
+             ================================================== -->
+
+        <footer class="main-footer">
+
+            <div>
+                ProcureAI
+            </div>
+
+            <div>
+
+                AI-assisted procurement intelligence ·
+                Human review required for final decisions
+
+            </div>
+
+        </footer>
+
+
+    </main>
+
+
+
+    <!-- ==================================================
+         JAVASCRIPT
+         ================================================== -->
+
+    <script
+        src="{{ url_for('static', filename='script.js') }}"
+    ></script>
+
+
+</body>
+
+</html>
